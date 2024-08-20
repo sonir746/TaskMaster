@@ -84,7 +84,6 @@ app.get("/", function (req, res)
 
 app.post("/", function (req, res)
 {
-
   const itemName = req.body.newItem.trim();
   const listName = req.body.list;
 
@@ -94,41 +93,59 @@ app.post("/", function (req, res)
 
   if (listName === day) {
     if (itemName.length !== 0) {
-      item.save();
+      item.save()
+        .then(() =>
+        {
+          res.redirect("/")
+        })
+        .catch(err =>
+        {
+          console.log(err)
+        });
     }
-    res.redirect("/")
+
   } else {
     List.findOne({ name: listName }).then(result =>
     {
       if (itemName.length !== 0) {
         result.items.push(item);
-        result.save();
+        result.save()
+          .then(() =>
+          {
+            res.redirect("/" + listName)
+          })
+          .catch(err =>
+          {
+            console.log(err)
+          });
       }
-      res.redirect("/" + listName)
-    }).catch(err =>
-    {
-      console.log(err)
+
     })
+      .catch(err =>
+      {
+        console.log(err)
+      })
   }
 
 
 });
 
 
-app.post("/delete", (req, res) => {
-  console.log(req.body)
-  console.log( req.body.checkbox)
-  console.log(req.body.listName)
+app.post("/delete", (req, res) =>
+{
+
   const checkboxId = req.body.checkbox;
   const listName = req.body.listName;
 
   if (listName === day) {
     // Remove from the Item collection
     Item.findByIdAndDelete(checkboxId)
-      .then(() => {
+      .then(() =>
+      {
         res.redirect("/");
       })
-      .catch(err => {
+      .catch(err =>
+      {
         console.log(err);
       });
   } else {
@@ -137,10 +154,12 @@ app.post("/delete", (req, res) => {
       { name: listName },
       { $pull: { items: { _id: checkboxId } } }
     )
-      .then(() => {
+      .then(() =>
+      {
         res.redirect("/" + listName);
       })
-      .catch(err => {
+      .catch(err =>
+      {
         console.log(err);
       });
   }
@@ -153,29 +172,32 @@ app.get("/:customListName", function (req, res)
 {
   let customListName = _.startCase(req.params.customListName);
 
+  List.findOne({ name: customListName })
+    .then(result =>
+    {
+      if (!result) {
+        const list = new List({
+          name: customListName,
+          items: defaultItem
+        });
 
-  List.findOne({ name: customListName }).then(result =>
-  { 
-    if (!result) {
-      const list = new List({
-        name: customListName,
-        items: defaultItem
-      });
-
-      list.save().then(() =>
-      {
-        res.redirect("/" + customListName);
-      }).catch(err =>
-      {
-        console.log("Error saving new list:", err);
-      });
-    } else {
-      res.render("list", { listTitle: customListName, newListItems: result.items });
-    }
-  }).catch(err =>
-  {
-    console.log("Error finding list:", err);
-  });
+        list.save()
+          .then(() =>
+          {
+            res.redirect("/" + customListName);
+          })
+          .catch(err =>
+          {
+            console.log("Error saving new list:", err);
+          });
+      } else {
+        res.render("list", { listTitle: customListName, newListItems: result.items });
+      }
+    })
+    .catch(err =>
+    {
+      console.log("Error finding list:", err);
+    });
 });
 
 
@@ -191,6 +213,7 @@ app.get("/about", function (req, res)
 
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, function() {
+app.listen(PORT, function ()
+{
   console.log(`Server started on port ${PORT}`);
 });
