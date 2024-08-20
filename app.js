@@ -51,31 +51,32 @@ const day = date.getDate();
 
 app.get("/", function (req, res)
 {
+  Item.find()
+    .then(result =>
+    {
+
+      if (result.length === 0) {
+        Item.insertMany(defaultItem)
+          .then(result =>
+          {
+
+            res.redirect("/")
+          })
+          .catch(err =>
+          {
+            console.log(err)
+          })
 
 
+      } else {
+        res.render("list", { listTitle: day, newListItems: result });
+      }
 
-  Item.find().then(result =>
-  {
-    // console.log(result)
-    if (result.length === 0) {
-      Item.insertMany(defaultItem).then(result =>
-      {
-        // console.log(result)
-      }).catch(err =>
-      {
-        console.log(err)
-      })
-
-      res.redirect("/")
-    } else {
-      res.render("list", { listTitle: day, newListItems: result });
-    }
-
-  }).catch(err =>
-  {
-    console.log(err)
-  }
-  )
+    })
+    .catch(err =>
+    {
+      console.log(err)
+    })
 
 
 
@@ -105,22 +106,23 @@ app.post("/", function (req, res)
     }
 
   } else {
-    List.findOne({ name: listName }).then(result =>
-    {
-      if (itemName.length !== 0) {
-        result.items.push(item);
-        result.save()
-          .then(() =>
-          {
-            res.redirect("/" + listName)
-          })
-          .catch(err =>
-          {
-            console.log(err)
-          });
-      }
+    List.findOne({ name: listName })
+      .then(result =>
+      {
+        if (itemName.length !== 0) {
+          result.items.push(item);
+          result.save()
+            .then(() =>
+            {
+              res.redirect("/" + listName)
+            })
+            .catch(err =>
+            {
+              console.log(err)
+            });
+        }
 
-    })
+      })
       .catch(err =>
       {
         console.log(err)
