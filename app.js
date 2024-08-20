@@ -49,6 +49,20 @@ const List = mongoose.model("List", listSchema)
 
 const day = date.getDate();
 
+
+app.get("/about", function (req, res)
+{
+  res.render("about");
+});
+
+app.get("/health", (req, res) => {
+  res.send("OK");
+});
+
+
+
+
+
 app.get("/", function (req, res)
 {
   Item.find()
@@ -207,10 +221,6 @@ app.get("/:customListName", function (req, res)
 
 
 
-app.get("/about", function (req, res)
-{
-  res.render("about");
-});
 
 
 

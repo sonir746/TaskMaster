@@ -14,5 +14,10 @@
   ],
   "env": {
     "MONGODB_URI": "mongodb+srv://sonir746:usemongodb@cluster0.dc3bi.mongodb.net/todolistDB"
+  },
+  "functions": {
+    "app.js": {
+      "maxDuration": 10
+    }
   }
 }
