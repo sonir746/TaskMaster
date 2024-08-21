@@ -5,7 +5,8 @@ const bodyParser = require("body-parser");
 const { default: mongoose } = require("mongoose");
 const { name } = require("ejs");
 const _ = require('lodash');
-const date = require(__dirname + "/date.js");
+const loc=__dirname + "/../date.js"
+const date = require(loc);
 
 const app = express();
 
