@@ -3,23 +3,22 @@
 const express = require("express");
 const bodyParser = require("body-parser");
 const mongoose = require("mongoose");
-const _ = require('lodash');
+const _ = require("lodash");
 const date = require(__dirname + "/date.js");
 
 const app = express();
 
 app.set('view engine', 'ejs');
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
-// Use environment variable for MongoDB URI
-const mongoURI = process.env.MONGODB_URI || "mongodb://localhost:27017/todolistDB";
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log("Connected to MongoDB"))
+  .catch(err => console.error("MongoDB connection error:", err));
 
-// Connect to MongoDB without deprecated options
-mongoose.connect(mongoURI)
-  .then(() => console.log('MongoDB connected successfully'))
-  .catch(err => console.log('MongoDB connection error:', err));
-
+// Define schemas and models
 const itemsSchema = {
   name: String,
 };
@@ -39,15 +38,17 @@ const item3 = new Item({
 const defaultItem = [item1, item2, item3];
 
 const listSchema = new mongoose.Schema({
-  name: { type: String, unique: true },  // Add unique constraint
+  name: { type: String, unique: true },
   items: [itemsSchema]
 });
 
 const List = mongoose.model("List", listSchema);
 
-const day = date.getDate();  // This should work if `getDate` is correctly exported from `date.js`
+// Get current date
+const day = date.getDate();
 
-app.get("/about", (req, res) => {
+// Routes
+app.get("/about", function (req, res) {
   res.render("about");
 });
 
@@ -55,21 +56,34 @@ app.get("/health", (req, res) => {
   res.send("OK");
 });
 
-app.get("/", (req, res) => {
+app.get("/", function (req, res) {
+  console.log("GET / request received");
+  
   Item.find()
     .then(result => {
+      console.log("Database query completed");
+      
       if (result.length === 0) {
         Item.insertMany(defaultItem)
-          .then(() => res.redirect("/"))
-          .catch(err => console.log(err));
+          .then(() => {
+            console.log("Default items inserted");
+            res.redirect("/");
+          })
+          .catch(err => {
+            console.error("Error inserting default items:", err);
+            res.status(500).send("Internal Server Error");
+          });
       } else {
         res.render("list", { listTitle: day, newListItems: result });
       }
     })
-    .catch(err => console.log(err));
+    .catch(err => {
+      console.error("Database query error:", err);
+      res.status(500).send("Internal Server Error");
+    });
 });
 
-app.post("/", (req, res) => {
+app.post("/", function (req, res) {
   const itemName = req.body.newItem.trim();
   const listName = req.body.list;
 
@@ -80,8 +94,14 @@ app.post("/", (req, res) => {
   if (listName === day) {
     if (itemName.length !== 0) {
       item.save()
-        .then(() => res.redirect("/"))
-        .catch(err => console.log(err));
+        .then(() => {
+          console.log("Item saved");
+          res.redirect("/");
+        })
+        .catch(err => {
+          console.error("Error saving item:", err);
+          res.status(500).send("Internal Server Error");
+        });
     }
   } else {
     List.findOne({ name: listName })
@@ -89,11 +109,20 @@ app.post("/", (req, res) => {
         if (itemName.length !== 0) {
           result.items.push(item);
           result.save()
-            .then(() => res.redirect("/" + listName))
-            .catch(err => console.log(err));
+            .then(() => {
+              console.log("Item added to list");
+              res.redirect("/" + listName);
+            })
+            .catch(err => {
+              console.error("Error saving item to list:", err);
+              res.status(500).send("Internal Server Error");
+            });
         }
       })
-      .catch(err => console.log(err));
+      .catch(err => {
+        console.error("Error finding list:", err);
+        res.status(500).send("Internal Server Error");
+      });
   }
 });
 
@@ -103,20 +132,32 @@ app.post("/delete", (req, res) => {
 
   if (listName === day) {
     Item.findByIdAndDelete(checkboxId)
-      .then(() => res.redirect("/"))
-      .catch(err => console.log(err));
+      .then(() => {
+        console.log("Item deleted");
+        res.redirect("/");
+      })
+      .catch(err => {
+        console.error("Error deleting item:", err);
+        res.status(500).send("Internal Server Error");
+      });
   } else {
     List.findOneAndUpdate(
       { name: listName },
       { $pull: { items: { _id: checkboxId } } }
     )
-      .then(() => res.redirect("/" + listName))
-      .catch(err => console.log(err));
+      .then(() => {
+        console.log("Item removed from list");
+        res.redirect("/" + listName);
+      })
+      .catch(err => {
+        console.error("Error removing item from list:", err);
+        res.status(500).send("Internal Server Error");
+      });
   }
 });
 
-app.get("/:customListName", (req, res) => {
-  const customListName = _.startCase(req.params.customListName);
+app.get("/:customListName", function (req, res) {
+  let customListName = _.startCase(req.params.customListName);
 
   List.findOne({ name: customListName })
     .then(result => {
@@ -127,16 +168,25 @@ app.get("/:customListName", (req, res) => {
         });
 
         list.save()
-          .then(() => res.redirect("/" + customListName))
-          .catch(err => console.log("Error saving new list:", err));
+          .then(() => {
+            console.log("New list created");
+            res.redirect("/" + customListName);
+          })
+          .catch(err => {
+            console.error("Error saving new list:", err);
+            res.status(500).send("Internal Server Error");
+          });
       } else {
         res.render("list", { listTitle: customListName, newListItems: result.items });
       }
     })
-    .catch(err => console.log("Error finding list:", err));
+    .catch(err => {
+      console.error("Error finding list:", err);
+      res.status(500).send("Internal Server Error");
+    });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, function () {
   console.log(`Server started on port ${PORT}`);
 });
